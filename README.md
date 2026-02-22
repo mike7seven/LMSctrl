@@ -62,4 +62,4 @@ lms-dashboard_2.html
 
 ## License
 
-MIT
+MIT — with a restriction on resale. See [LICENSE](LICENSE) for details.
