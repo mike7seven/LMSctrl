@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LMSctrl</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;600;700;800&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+[data-theme="dark"] {
+  --bg: #0d0f14;
+  --surface: #13161e;
+  --surface2: #1a1e28;
+  --border: #252a38;
+  --border-bright: #2e3548;
+  --text: #e2e6f0;
+  --text-muted: #5a6280;
+  --text-dim: #8891ae;
+  --input-bg: #0a0c10;
+}
+[data-theme="light"] {
+  --bg: #eef0f6;
+  --surface: #ffffff;
+  --surface2: #e4e7f0;
+  --border: #cdd1e0;
+  --border-bright: #b4bad0;
+  --text: #1a1e2e;
+  --text-muted: #7a82a0;
+  --text-dim: #4a5270;
+  --input-bg: #f6f8fc;
+}
+
+:root {
+  --accent: #4f8ef7;
+  --accent-dim: rgba(79,142,247,0.12);
+  --green: #22c97a;
+  --green-dim: rgba(34,201,122,0.12);
+  --yellow: #f5a623;
+  --yellow-dim: rgba(245,166,35,0.12);
+  --red: #f06060;
+  --red-dim: rgba(240,96,96,0.12);
+  --purple: #a78bfa;
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'Syne', sans-serif;
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 14px;
+  overflow: hidden;
+  transition: background 0.2s, color 0.2s;
+}
+
+.app { display: grid; grid-template-rows: 54px 1fr; height: 100vh; }
+
+/* TOPBAR */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 18px; border-bottom: 1px solid var(--border);
+  background: var(--surface); gap: 12px; flex-shrink: 0;
+}
+.topbar-left { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.logo { font-family: var(--sans); font-weight: 800; font-size: 18px; letter-spacing: -0.3px; color: var(--text); white-space: nowrap; }
+.logo span { color: var(--accent); }
+
+.status-pill {
+  display: flex; align-items: center; gap: 7px;
+  padding: 4px 12px; border-radius: 5px; font-size: 13px; white-space: nowrap; transition: all 0.3s;
+}
+.status-pill.connected { background: var(--green-dim); color: var(--green); border: 1px solid rgba(34,201,122,0.25); }
+.status-pill.disconnected { background: var(--red-dim); color: var(--red); border: 1px solid rgba(240,96,96,0.25); }
+.status-pill.connecting { background: var(--yellow-dim); color: var(--yellow); border: 1px solid rgba(245,166,35,0.25); }
+.status-pill .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.status-pill.connected .dot, .status-pill.connecting .dot { animation: pulse 1.8s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.25} }
+
+.topbar-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+input[type="text"], input[type="password"], input[type="number"] {
+  background: var(--input-bg); border: 1px solid var(--border); border-radius: 5px;
+  color: var(--text); font-family: var(--mono); font-size: 13px;
+  padding: 5px 10px; transition: border-color .15s;
+}
+input:focus { outline: none; border-color: var(--accent); }
+
+select {
+  background: var(--input-bg); border: 1px solid var(--border); border-radius: 5px;
+  color: var(--text-dim); font-family: var(--mono); font-size: 13px;
+  padding: 5px 8px; cursor: pointer;
+}
+select:focus { outline: none; border-color: var(--accent); }
+
+.btn {
+  font-family: var(--mono); font-size: 13px; padding: 5px 14px;
+  border-radius: 5px; border: 1px solid var(--border); cursor: pointer;
+  background: var(--surface2); color: var(--text-dim); transition: all .15s; white-space: nowrap;
+}
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: var(--accent) !important; border-color: var(--accent) !important; color: #fff !important; }
+.btn-primary:hover { opacity: 0.85; }
+.btn-danger { color: var(--red) !important; border-color: rgba(240,96,96,0.35) !important; }
+.btn-danger:hover { background: var(--red-dim) !important; }
+.btn-sm { padding: 4px 10px; font-size: 12px; }
+.btn-xs { padding: 2px 7px; font-size: 11px; }
+
+.theme-toggle { display: flex; border: 1px solid var(--border); border-radius: 5px; overflow: hidden; }
+.theme-btn {
+  padding: 4px 10px; font-size: 14px; cursor: pointer;
+  background: var(--surface2); color: var(--text-muted);
+  border: none; border-right: 1px solid var(--border);
+  font-family: var(--mono); transition: all .15s;
+}
+.theme-btn:last-child { border-right: none; }
+.theme-btn.active { background: var(--accent); color: #fff; }
+.theme-btn:hover:not(.active) { color: var(--text); }
+
+/* BODY */
+.body { display: grid; grid-template-columns: 230px 1fr 300px; overflow: hidden; }
+
+/* SIDEBAR */
+.sidebar {
+  border-right: 1px solid var(--border); background: var(--surface);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.sidebar-section { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+.section-label {
+  font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--text-muted); margin-bottom: 10px; font-family: var(--sans); font-weight: 600;
+}
+
+.stat-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 7px; }
+.stat-label { color: var(--text-muted); font-size: 13px; }
+.stat-value { color: var(--text); font-size: 13px; }
+.stat-value.green { color: var(--green); }
+.stat-value.accent { color: var(--accent); }
+.stat-value.red { color: var(--red); }
+
+.loaded-section {
+  flex: 1; overflow-y: auto; padding: 12px 14px; min-height: 0;
+  border-bottom: 1px solid var(--border);
+}
+.loaded-section::-webkit-scrollbar { width: 3px; }
+.loaded-section::-webkit-scrollbar-thumb { background: var(--border); }
+.no-loaded { color: var(--text-muted); font-size: 12px; font-style: italic; padding: 4px 0; }
+
+.loaded-item {
+  background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+  padding: 9px 11px; margin-bottom: 7px; cursor: pointer; transition: border-color .15s;
+}
+.loaded-item:hover { border-color: var(--accent); }
+.loaded-item-name { color: var(--text); font-size: 12px; margin-bottom: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.loaded-item-meta { font-size: 11px; color: var(--green); }
+
+.nav-section { padding: 8px 0; }
+.nav-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 9px 18px; color: var(--text-muted); cursor: pointer;
+  font-size: 14px; transition: all .15s; border-left: 2px solid transparent;
+}
+.nav-item:hover { color: var(--text); background: var(--surface2); }
+.nav-item.active { color: var(--accent); border-left-color: var(--accent); background: var(--accent-dim); }
+
+/* CENTER */
+.center { display: flex; flex-direction: column; overflow: hidden; }
+
+.panel-tabs {
+  display: flex; border-bottom: 1px solid var(--border);
+  background: var(--surface); padding: 0 20px; flex-shrink: 0;
+}
+.tab {
+  padding: 14px 18px; font-size: 14px; color: var(--text-muted);
+  cursor: pointer; border-bottom: 2px solid transparent; transition: all .15s; white-space: nowrap;
+}
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+.panel-body { flex: 1; overflow-y: auto; padding: 20px; }
+.panel-body::-webkit-scrollbar { width: 4px; }
+.panel-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* FILTER */
+.filter-row { display: flex; gap: 8px; margin-bottom: 16px; align-items: center; flex-wrap: wrap; }
+.filter-chip {
+  padding: 5px 12px; border-radius: 5px; font-size: 13px;
+  border: 1px solid var(--border); color: var(--text-muted); cursor: pointer; transition: all .15s;
+}
+.filter-chip:hover { border-color: var(--border-bright); color: var(--text); }
+.filter-chip.active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
+/* MODEL CARDS */
+.model-grid { display: flex; flex-direction: column; gap: 10px; }
+
+.model-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 14px 16px; transition: border-color .15s;
+  display: grid; grid-template-columns: 1fr auto; gap: 14px; align-items: start;
+}
+.model-card:hover { border-color: var(--border-bright); }
+.model-card.is-loaded { border-color: rgba(34,201,122,0.35); background: linear-gradient(135deg, var(--surface), rgba(34,201,122,0.04)); }
+.model-card.is-loading { opacity: 0.6; pointer-events: none; }
+
+.card-header { display: flex; align-items: center; gap: 9px; margin-bottom: 7px; }
+.state-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted); flex-shrink: 0; }
+.state-dot.loaded { background: var(--green); box-shadow: 0 0 7px rgba(34,201,122,0.5); animation: pulse 2s infinite; }
+.state-dot.loading { background: var(--yellow); animation: pulse 0.5s infinite; }
+.card-name { font-family: var(--sans); font-weight: 700; font-size: 15px; color: var(--text); line-height: 1.2; }
+.card-pub { font-size: 12px; color: var(--text-muted); }
+
+.tags { display: flex; gap: 6px; margin-bottom: 9px; flex-wrap: wrap; }
+.tag {
+  padding: 2px 8px; border-radius: 3px; font-size: 12px;
+  background: var(--surface2); border: 1px solid var(--border); color: var(--text-dim);
+}
+.tag.t-llm { color: var(--accent); border-color: rgba(79,142,247,0.3); background: var(--accent-dim); }
+.tag.t-embedding { color: var(--purple); border-color: rgba(167,139,250,0.3); background: rgba(167,139,250,0.1); }
+.tag.t-vlm { color: var(--yellow); border-color: rgba(245,166,35,0.3); background: var(--yellow-dim); }
+
+.specs { display: flex; gap: 16px; font-size: 12px; color: var(--text-muted); flex-wrap: wrap; }
+.specs .v { color: var(--text-dim); }
+
+.loaded-bar {
+  margin-top: 9px; padding: 9px 12px; border-radius: 6px;
+  background: var(--green-dim); border: 1px solid rgba(34,201,122,0.2);
+  display: flex; gap: 18px; font-size: 12px; flex-wrap: wrap;
+}
+.loaded-bar .kv { display: flex; flex-direction: column; gap: 2px; }
+.loaded-bar .k { color: var(--text-muted); font-size: 11px; }
+.loaded-bar .v { color: var(--green); }
+
+.card-actions { display: flex; flex-direction: column; gap: 7px; align-items: flex-end; }
+
+.empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+.empty-state .icon { font-size: 40px; margin-bottom: 14px; opacity: 0.3; }
+.empty-state p { font-size: 14px; line-height: 1.9; }
+
+/* TEST */
+.test-row { display: flex; gap: 8px; margin-bottom: 14px; align-items: center; flex-wrap: wrap; }
+.field-label { font-size: 11px; color: var(--text-muted); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px; }
+textarea {
+  width: 100%; background: var(--input-bg); border: 1px solid var(--border);
+  border-radius: 6px; color: var(--text); font-family: var(--mono); font-size: 14px;
+  padding: 10px 12px; resize: vertical; line-height: 1.6; transition: border-color .15s;
+}
+textarea:focus { outline: none; border-color: var(--accent); }
+
+.api-badge {
+  padding: 5px 11px; border-radius: 5px; font-size: 13px; font-weight: 500;
+  white-space: nowrap; cursor: pointer; border: 1px solid var(--border); transition: all .15s;
+  user-select: none;
+}
+.api-badge.lms { color: var(--accent); border-color: rgba(79,142,247,0.4); background: var(--accent-dim); }
+.api-badge.openai { color: var(--green); border-color: rgba(34,201,122,0.4); background: var(--green-dim); }
+.api-badge.anthropic { color: var(--purple); border-color: rgba(167,139,250,0.4); background: rgba(167,139,250,0.1); }
+
+.send-row { display: flex; gap: 10px; align-items: center; margin: 10px 0; flex-wrap: wrap; }
+.inline-label { font-size: 13px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+.inline-label input[type="checkbox"] { accent-color: var(--accent); width: 14px; height: 14px; }
+.num-sm { width: 68px !important; }
+
+.test-output {
+  background: var(--input-bg); border: 1px solid var(--border); border-radius: 6px;
+  padding: 12px 14px; font-size: 14px; color: var(--text-muted); min-height: 120px;
+  max-height: 300px; overflow-y: auto; line-height: 1.7; white-space: pre-wrap;
+  font-family: var(--mono);
+}
+.test-output.has-content { color: var(--text); border-color: var(--border-bright); }
+.test-output.streaming { border-color: rgba(79,142,247,0.4); color: var(--text); }
+.test-output.is-error { border-color: rgba(240,96,96,0.4); color: var(--red); background: var(--red-dim); }
+.cursor-blink {
+  display: inline-block; width: 2px; height: 14px; background: var(--accent);
+  margin-left: 2px; animation: blink 1s step-end infinite; vertical-align: text-bottom;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+.perf-row {
+  display: flex; gap: 18px; margin-top: 10px; padding: 10px 14px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 6px; flex-wrap: wrap;
+}
+.perf-item { display: flex; flex-direction: column; gap: 3px; }
+.perf-k { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+.perf-v { font-size: 16px; color: var(--accent); font-weight: 500; }
+.perf-v.ok { color: var(--green); }
+
+.cors-banner {
+  background: var(--yellow-dim); border: 1px solid rgba(245,166,35,0.35);
+  border-radius: 6px; padding: 10px 14px; font-size: 13px; color: var(--yellow);
+  line-height: 1.6; margin-bottom: 14px;
+}
+
+/* RIGHT PANEL */
+.right-panel {
+  border-left: 1px solid var(--border); background: var(--surface);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.right-header {
+  padding: 12px 16px; border-bottom: 1px solid var(--border);
+  font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--text-muted); font-family: var(--sans); font-weight: 600;
+  display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;
+}
+.right-body { flex: 1; overflow-y: auto; padding: 16px; min-height: 0; }
+.right-body::-webkit-scrollbar { width: 3px; }
+.right-body::-webkit-scrollbar-thumb { background: var(--border); }
+
+/* Load config */
+.load-config { display: flex; flex-direction: column; gap: 14px; }
+.config-model-id { font-size: 12px; color: var(--accent); padding-bottom: 10px; border-bottom: 1px solid var(--border); word-break: break-all; line-height: 1.5; }
+.config-label { font-size: 13px; color: var(--text-muted); margin-bottom: 4px; }
+.range-row { display: flex; align-items: center; gap: 10px; }
+input[type="range"] { flex: 1; accent-color: var(--accent); cursor: pointer; }
+.range-val { font-size: 13px; color: var(--accent); min-width: 56px; text-align: right; }
+.range-hint { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.toggle-row { display: flex; justify-content: space-between; align-items: center; }
+.toggle {
+  width: 38px; height: 22px; background: var(--border); border-radius: 11px;
+  position: relative; cursor: pointer; transition: background .2s; flex-shrink: 0;
+}
+.toggle.on { background: var(--accent); }
+.toggle::after {
+  content: ''; position: absolute; width: 16px; height: 16px;
+  background: white; border-radius: 50%; top: 3px; left: 3px; transition: left .2s;
+}
+.toggle.on::after { left: 19px; }
+
+/* Log */
+.log-container { flex-shrink: 0; border-top: 1px solid var(--border); }
+.log-header {
+  padding: 9px 16px; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--text-muted); font-family: var(--sans); font-weight: 600;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.log-scroll { max-height: 180px; overflow-y: auto; padding: 2px 14px 10px; }
+.log-scroll::-webkit-scrollbar { width: 3px; }
+.log-scroll::-webkit-scrollbar-thumb { background: var(--border); }
+.log-entry { display: flex; gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--border); font-size: 11px; line-height: 1.5; }
+.log-time { color: var(--text-muted); white-space: nowrap; flex-shrink: 0; }
+.log-lv { width: 28px; flex-shrink: 0; font-weight: 700; font-size: 10px; }
+.log-lv.ok { color: var(--green); }
+.log-lv.inf { color: var(--accent); }
+.log-lv.wrn { color: var(--yellow); }
+.log-lv.err { color: var(--red); }
+.log-msg { color: var(--text-dim); word-break: break-all; }
+
+/* Endpoints */
+.ep-group { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-muted); font-family: var(--sans); font-weight: 600; margin: 16px 0 10px; display: flex; align-items: center; gap: 8px; }
+.ep-pill { padding: 1px 8px; border-radius: 3px; font-size: 11px; font-family: var(--mono); }
+.ep-lms { color: var(--accent); background: var(--accent-dim); border: 1px solid rgba(79,142,247,0.3); }
+.ep-oai { color: var(--green); background: var(--green-dim); border: 1px solid rgba(34,201,122,0.3); }
+.ep-ant { color: var(--purple); background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.3); }
+.ep-item { margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+.ep-item:last-child { border-bottom: none; }
+.ep-row { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
+.method { display: inline-block; padding: 1px 7px; border-radius: 3px; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+.m-get { background: var(--green-dim); color: var(--green); border: 1px solid rgba(34,201,122,0.3); }
+.m-post { background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(79,142,247,0.3); }
+.ep-path { font-size: 13px; color: var(--text-dim); word-break: break-all; }
+.ep-desc { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="logo">LMS<span>ctrl</span></div>
+      <div class="status-pill disconnected" id="statusPill">
+        <div class="dot"></div>
+        <span id="statusText">Disconnected</span>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <input type="text" id="hostInput" value="localhost:1234" style="width:160px;" placeholder="host:port" />
+      <input type="password" id="tokenInput" style="width:130px;" placeholder="token (opt)" />
+      <select id="pollSelect" onchange="setPoll()">
+        <option value="5000">5s</option>
+        <option value="10000">10s</option>
+        <option value="30000">30s</option>
+        <option value="0">manual</option>
+      </select>
+      <button class="btn btn-primary" onclick="connect()">Connect</button>
+      <button class="btn" onclick="window.location.href='lmstudio://'" title="Open LM Studio app">⬡</button>
+      <button class="btn" onclick="copyStartCmd(this)" title="Copy server start command to clipboard">▶</button>
+      <div class="theme-toggle">
+        <button class="theme-btn" data-mode="light" onclick="setTheme('light')" title="Light">☀</button>
+        <button class="theme-btn active" data-mode="dark" onclick="setTheme('dark')" title="Dark">☾</button>
+        <button class="theme-btn" data-mode="system" onclick="setTheme('system')" title="System">◑</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="body">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-section">
+        <div class="section-label">Server</div>
+        <div class="stat-row"><span class="stat-label">Host</span><span class="stat-value accent" id="sb-host">—</span></div>
+        <div class="stat-row"><span class="stat-label">Status</span><span class="stat-value" id="sb-status">—</span></div>
+        <div class="stat-row"><span class="stat-label">Auth</span><span class="stat-value" id="sb-auth">None</span></div>
+        <div class="stat-row"><span class="stat-label">Models</span><span class="stat-value accent" id="sb-total">—</span></div>
+        <div class="stat-row"><span class="stat-label">Loaded</span><span class="stat-value green" id="sb-loaded">—</span></div>
+      </div>
+
+      <div class="section-label" style="padding:12px 16px 0;">Loaded Models</div>
+      <div class="loaded-section" id="loadedList">
+        <div class="no-loaded">Not connected</div>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-item active" data-nav="models" onclick="showNav('models',this)">⬡&nbsp; Models</div>
+        <div class="nav-item" data-nav="test" onclick="showNav('test',this)">▷&nbsp; Quick Test</div>
+        <div class="nav-item" data-nav="endpoints" onclick="showNav('endpoints',this)">⌘&nbsp; Endpoints</div>
+      </div>
+    </aside>
+
+    <!-- CENTER -->
+    <main class="center">
+      <div class="panel-tabs">
+        <div class="tab active" id="tab-models" onclick="switchTab('models')">Models</div>
+        <div class="tab" id="tab-test" onclick="switchTab('test')">Quick Test</div>
+        <div class="tab" id="tab-endpoints" onclick="switchTab('endpoints')">Endpoints</div>
+      </div>
+
+      <!-- MODELS VIEW -->
+      <div class="panel-body" id="view-models">
+        <div class="filter-row" id="filterRow" style="display:none;">
+          <div class="filter-chip active" onclick="setFilter(this,'all')">All (<span id="fc-all">0</span>)</div>
+          <div class="filter-chip" onclick="setFilter(this,'llm')">LLM (<span id="fc-llm">0</span>)</div>
+          <div class="filter-chip" onclick="setFilter(this,'embedding')">Embed (<span id="fc-embedding">0</span>)</div>
+          <div class="filter-chip" onclick="setFilter(this,'vlm')">VLM (<span id="fc-vlm">0</span>)</div>
+          <input type="text" id="searchInput" placeholder="search…" style="margin-left:auto;width:140px;" oninput="renderModels()" />
+        </div>
+        <div class="model-grid" id="modelGrid">
+          <div class="empty-state"><div class="icon">⬡</div><p>Connect to LM Studio to see your models.</p></div>
+        </div>
+      </div>
+
+      <!-- TEST VIEW -->
+      <div class="panel-body" id="view-test" style="display:none;">
+        <div class="cors-banner" id="corsBanner" style="display:none;">
+          <strong>⚠ CORS heads-up:</strong> If you're opening this as a <code>file://</code>, browsers may block direct API calls.
+          Enable CORS in LM Studio → Server Settings, or serve via <code>npx serve .</code>
+        </div>
+        <div class="test-row">
+          <select id="testModel" style="flex:1;">
+            <option value="">— connect and load a model first —</option>
+          </select>
+          <div class="api-badge lms" id="apiBadge" onclick="cycleApi()" title="Click to cycle API">LMS /api/v1</div>
+        </div>
+        <div style="margin-bottom:12px;">
+          <div class="field-label">System (optional)</div>
+          <textarea id="sysInput" rows="2" placeholder="You are a helpful assistant…"></textarea>
+        </div>
+        <div style="margin-bottom:6px;">
+          <div class="field-label">Prompt</div>
+          <textarea id="promptInput" rows="4" placeholder="Type a message… (Ctrl+Enter to send)"></textarea>
+        </div>
+        <div class="send-row">
+          <button class="btn btn-primary" id="sendBtn" onclick="sendTest()">Send ▷</button>
+          <button class="btn" onclick="clearTest()">Clear</button>
+          <label class="inline-label"><input type="checkbox" id="streamChk" checked> Stream</label>
+          <label class="inline-label">Temp <input type="number" id="tempInp" class="num-sm" value="0.7" step="0.1" min="0" max="2"></label>
+          <label class="inline-label">Max tok <input type="number" id="maxTokInp" class="num-sm" value="1024" min="1"></label>
+        </div>
+        <div class="field-label">Response</div>
+        <div class="test-output" id="testOut">Response will appear here…</div>
+        <div class="perf-row" id="perfRow" style="display:none;">
+          <div class="perf-item"><div class="perf-k">TTFT</div><div class="perf-v" id="p-ttft">—</div></div>
+          <div class="perf-item"><div class="perf-k">Tokens/s</div><div class="perf-v" id="p-tps">—</div></div>
+          <div class="perf-item"><div class="perf-k">Tokens out</div><div class="perf-v" id="p-tok">—</div></div>
+          <div class="perf-item"><div class="perf-k">Total time</div><div class="perf-v" id="p-total">—</div></div>
+          <div class="perf-item"><div class="perf-k">Stop</div><div class="perf-v ok" id="p-stop">—</div></div>
+        </div>
+      </div>
+
+      <!-- ENDPOINTS VIEW -->
+      <div class="panel-body" id="view-endpoints" style="display:none;">
+        <div class="ep-group"><span class="ep-pill ep-lms">LMS Native</span>/api/v1</div>
+        <div class="ep-item"><div class="ep-row"><span class="method m-get">GET</span><span class="ep-path">/api/v1/models</span></div><div class="ep-desc">List all downloaded models — state, quantization, architecture, context, loaded instances, capabilities</div></div>
+        <div class="ep-item"><div class="ep-row"><span class="method m-post">POST</span><span class="ep-path">/api/v1/models/load</span></div><div class="ep-desc">Load a model with config: <code style="color:var(--accent)">{ model, context_length, flash_attention, offload_kv_cache_to_gpu, eval_batch_size }</code></div></div>
+        <div class="ep-item"><div class="ep-row"><span class="method m-post">POST</span><span class="ep-path">/api/v1/models/unload</span></div><div class="ep-desc">Unload by instance_id: <code style="color:var(--accent)">{ instance_id: "..." }</code></div></div>
+        <div class="ep-item"><div class="ep-row"><span class="method m-post">POST</span><span class="ep-path">/api/v1/models/download</span></div><div class="ep-desc">Pull a model from HuggingFace by identifier string</div></div>
+        <div class="ep-item"><div class="ep-row"><span class="method m-get">GET</span><span class="ep-path">/api/v1/models/download-status</span></div><div class="ep-desc">Active download progress</div></div>
+        <div class="ep-item"><div class="ep-row"><span class="method m-post">POST</span><span class="ep-path">/api/v1/chat</span></div><div class="ep-desc">Stateful chat — returns <code style="color:var(--accent)">response_id</code> for continuation, detailed perf stats (TTFT, t/s), supports local MCPs via permission keys</div></div>
+
+        <div class="ep-group"><span class="ep-pill ep-oai">OpenAI Compat</span>/v1</div>
+        <div class="ep-item"><div class="ep-row"><span class="method m-get">GET</span><span class="ep-path">/v1/models</span></div><div class="ep-desc">List models in OpenAI format</div></div>
+        <div class="ep-item"><div class="ep-row"><span class="method m-post">POST</span><span class="ep-path">/v1/chat/completions</span></div><div class="ep-desc">Standard chat completions with streaming, tools, structured output</div></div>
+        <div class="ep-item"><div class="ep-row"><span class="method m-post">POST</span><span class="ep-path">/v1/responses</span></div><div class="ep-desc">OpenAI Responses API (Codex compatible)</div></div>
+        <div class="ep-item"><div class="ep-row"><span class="method m-post">POST</span><span class="ep-path">/v1/embeddings</span></div><div class="ep-desc">Generate embeddings from loaded embedding models</div></div>
+        <div class="ep-item"><div class="ep-row"><span class="method m-post">POST</span><span class="ep-path">/v1/completions</span></div><div class="ep-desc">Legacy text completions (non-chat)</div></div>
+
+        <div class="ep-group"><span class="ep-pill ep-ant">Anthropic Compat</span>/anthropic/v1</div>
+        <div class="ep-item"><div class="ep-row"><span class="method m-post">POST</span><span class="ep-path">/anthropic/v1/messages</span></div><div class="ep-desc">Anthropic Messages API — drop-in for Claude SDK users</div></div>
+      </div>
+    </main>
+
+    <!-- RIGHT PANEL -->
+    <aside class="right-panel">
+      <div class="right-header">
+        <span id="rightTitle">Config</span>
+        <button class="btn btn-xs" onclick="clearRight()">✕</button>
+      </div>
+      <div class="right-body" id="rightBody">
+        <div style="color:var(--text-muted);font-size:13px;text-align:center;padding:30px 10px;line-height:1.8;">
+          Click <strong style="color:var(--text)">Load ▷</strong> on any unloaded model to configure and load it here.
+        </div>
+      </div>
+
+      <div class="log-container">
+        <div class="log-header">
+          Activity
+          <button class="btn btn-xs" onclick="clearLog()">Clear</button>
+        </div>
+        <div class="log-scroll" id="actLog">
+          <div style="color:var(--text-muted);font-size:11px;padding:6px 0;text-align:center;">No activity yet</div>
+        </div>
+      </div>
+    </aside>
+
+  </div>
+</div>
+
+<script>
+// ── STATE ──
+const S = {
+  host: 'localhost:1234',
+  token: '',
+  connected: false,
+  models: [],
+  filter: 'all',
+  pollMs: 5000,
+  pollTimer: null,
+  loadingId: null,
+  api: 'lms',
+  configFor: null,
+  theme: 'dark',
+};
+
+// ── UTILS ──
+function baseUrl() {
+  const h = S.host.trim();
+  return h.startsWith('http') ? h.replace(/\/$/, '') : `http://${h}`;
+}
+function hdrs(extra = {}) {
+  const h = { 'Content-Type': 'application/json', ...extra };
+  if (S.token.trim()) h['Authorization'] = `Bearer ${S.token.trim()}`;
+  return h;
+}
+const ts = () => new Date().toTimeString().slice(0, 8);
+function fmtBytes(b) {
+  if (!b) return null;
+  if (b >= 1e9) return (b / 1e9).toFixed(1) + ' GB';
+  if (b >= 1e6) return (b / 1e6).toFixed(0) + ' MB';
+  return b + ' B';
+}
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function isLoaded(m) {
+  return m.state === 'loaded' || (Array.isArray(m.loaded_instances) && m.loaded_instances.length > 0);
+}
+function mType(m) { return (m.type || '').toLowerCase(); }
+
+// ── THEME ──
+function setTheme(mode) {
+  S.theme = mode;
+  document.querySelectorAll('.theme-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+  applyTheme();
+  localStorage.setItem('lmsctrl_theme', mode);
+}
+function applyTheme() {
+  if (S.theme === 'system') {
+    document.documentElement.dataset.theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  } else {
+    document.documentElement.dataset.theme = S.theme;
+  }
+}
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+  if (S.theme === 'system') applyTheme();
+});
+
+// ── LOGGING ──
+function log(lv, msg) {
+  const c = document.getElementById('actLog');
+  c.querySelector('div[style]')?.remove();
+  const lvClass = { OK:'ok', INF:'inf', WRN:'wrn', ERR:'err' }[lv] || 'inf';
+  const el = document.createElement('div');
+  el.className = 'log-entry';
+  el.innerHTML = `<span class="log-time">${ts()}</span><span class="log-lv ${lvClass}">${lv}</span><span class="log-msg">${esc(msg)}</span>`;
+  c.prepend(el);
+  while (c.children.length > 80) c.lastChild.remove();
+}
+function clearLog() {
+  document.getElementById('actLog').innerHTML = '<div style="color:var(--text-muted);font-size:11px;padding:6px 0;text-align:center;">Cleared</div>';
+}
+
+// ── API ──
+async function apiFetch(path, opts = {}) {
+  const res = await fetch(`${baseUrl()}${path}`, {
+    ...opts,
+    headers: hdrs(opts.extraHeaders || {})
+  });
+  return res;
+}
+
+function copyStartCmd(btn) {
+  const cmd = 'lms server start --cors';
+  navigator.clipboard.writeText(cmd).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = '✓';
+    log('INF', `Copied to clipboard: ${cmd}`);
+    setTimeout(() => btn.textContent = orig, 1500);
+  }).catch(() => {
+    prompt('Copy this command and run it in your terminal:', cmd);
+  });
+}
+
+// ── CONNECT / POLL ──
+async function connect() {
+  S.host = document.getElementById('hostInput').value.trim() || 'localhost:1234';
+  S.token = document.getElementById('tokenInput').value;
+  sessionStorage.setItem('lmsctrl_host', S.host);
+  sessionStorage.setItem('lmsctrl_token', S.token);
+
+  setStatus('connecting');
+  log('INF', `Connecting to ${S.host}…`);
+
+  try {
+    const res = await apiFetch('/api/v1/models');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    S.models = data.models || data.data || [];
+    S.connected = true;
+    setStatus('connected');
+    updateSidebar();
+    renderModels();
+    syncTestSelect();
+    log('OK', `Connected · ${S.models.length} model(s)`);
+    startPoll();
+  } catch (e) {
+    S.connected = false;
+    setStatus('disconnected');
+    log('ERR', `Failed: ${e.message}`);
+    if (/fetch|network/i.test(e.message)) showCorsBanner();
+  }
+}
+
+function setStatus(s) {
+  const pill = document.getElementById('statusPill');
+  pill.className = `status-pill ${s}`;
+  document.getElementById('statusText').textContent =
+    { connecting: 'Connecting…', connected: 'Connected', disconnected: 'Disconnected' }[s] || s;
+}
+
+function startPoll() {
+  clearInterval(S.pollTimer);
+  if (S.pollMs > 0) S.pollTimer = setInterval(refresh, S.pollMs);
+}
+function setPoll() {
+  S.pollMs = parseInt(document.getElementById('pollSelect').value);
+  if (S.connected) startPoll();
+}
+
+async function refresh() {
+  if (!S.connected) return;
+  try {
+    const res = await apiFetch('/api/v1/models');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    S.models = data.models || data.data || [];
+    updateSidebar();
+    renderModels();
+    syncTestSelect();
+  } catch (e) {
+    log('ERR', `Poll: ${e.message}`);
+    if (/fetch|network/i.test(e.message)) {
+      S.connected = false;
+      setStatus('disconnected');
+      clearInterval(S.pollTimer);
+    }
+  }
+}
+
+// ── SIDEBAR ──
+function updateSidebar() {
+  document.getElementById('sb-host').textContent = S.host;
+  document.getElementById('sb-status').innerHTML = S.connected
+    ? '<span class="green">● Online</span>' : '<span class="red">● Offline</span>';
+  document.getElementById('sb-auth').textContent = S.token ? '✓ Token' : 'None';
+  document.getElementById('sb-auth').className = 'stat-value ' + (S.token ? 'green' : '');
+  document.getElementById('sb-total').textContent = S.models.length;
+
+  const loaded = S.models.filter(isLoaded);
+  document.getElementById('sb-loaded').textContent = loaded.length;
+
+  const list = document.getElementById('loadedList');
+  list.innerHTML = '';
+  if (!loaded.length) {
+    list.innerHTML = '<div class="no-loaded">No models loaded</div>';
+    return;
+  }
+  loaded.forEach(m => {
+    const id = m.key || m.id || '';
+    const name = m.display_name || id;
+    const quant = m.quantization?.name || m.quantization || '';
+    const div = document.createElement('div');
+    div.className = 'loaded-item';
+    div.innerHTML = `<div class="loaded-item-name">${esc(name)}</div><div class="loaded-item-meta">● loaded${quant ? ' · ' + quant : ''}</div>`;
+    div.onclick = () => { openTest(id); };
+    list.appendChild(div);
+  });
+}
+
+// ── MODEL RENDERING ──
+function renderModels() {
+  const grid = document.getElementById('modelGrid');
+  const fRow = document.getElementById('filterRow');
+
+  if (!S.connected || !S.models.length) {
+    fRow.style.display = 'none';
+    grid.innerHTML = `<div class="empty-state"><div class="icon">⬡</div><p>${S.connected ? 'No models found on this server.' : 'Connect to LM Studio to see your models.'}</p></div>`;
+    return;
+  }
+
+  fRow.style.display = 'flex';
+  const q = (document.getElementById('searchInput')?.value || '').toLowerCase();
+
+  // Update counts
+  const counts = { all: 0, llm: 0, embedding: 0, vlm: 0 };
+  S.models.forEach(m => { counts.all++; const t = mType(m); if (t in counts) counts[t]++; });
+  Object.keys(counts).forEach(k => { const el = document.getElementById('fc-' + k); if (el) el.textContent = counts[k]; });
+
+  let list = S.models.filter(m => {
+    if (S.filter !== 'all' && mType(m) !== S.filter) return false;
+    if (q) {
+      const n = (m.display_name || m.key || m.id || '').toLowerCase();
+      if (!n.includes(q) && !(m.publisher || '').toLowerCase().includes(q)) return false;
+    }
+    return true;
+  }).sort((a, b) => (isLoaded(b) ? 1 : 0) - (isLoaded(a) ? 1 : 0));
+
+  if (!list.length) {
+    grid.innerHTML = `<div class="empty-state"><div class="icon">⬡</div><p>No models match.</p></div>`;
+    return;
+  }
+
+  grid.innerHTML = '';
+  list.forEach(m => grid.appendChild(buildCard(m)));
+}
+
+function buildCard(m) {
+  const loaded = isLoaded(m);
+  const loading = S.loadingId === (m.key || m.id);
+  const t = mType(m);
+  const id = m.key || m.id || '';
+  const name = m.display_name || id;
+  const pub = m.publisher || '';
+  const quant = m.quantization?.name || (typeof m.quantization === 'string' ? m.quantization : '');
+  const bits = m.quantization?.bits_per_weight;
+  const maxCtx = m.max_context_length;
+  const size = fmtBytes(m.size_bytes);
+  const params = m.params_string || '';
+  const arch = m.architecture || m.arch || '';
+  const fmt = m.format || m.compatibility_type || '';
+  const vision = m.capabilities?.vision;
+  const tools = m.capabilities?.trained_for_tool_use;
+  const instances = m.loaded_instances || [];
+
+  const typeClass = { llm: 't-llm', embedding: 't-embedding', vlm: 't-vlm' }[t] || '';
+
+  let loadedBarHtml = '';
+  if (loaded && instances.length) {
+    const cfg = instances[0].config || {};
+    loadedBarHtml = `<div class="loaded-bar">
+      <div class="kv"><div class="k">ctx loaded</div><div class="v">${(cfg.context_length || '?').toLocaleString()}</div></div>
+      <div class="kv"><div class="k">flash attn</div><div class="v">${cfg.flash_attention ? 'on' : 'off'}</div></div>
+      <div class="kv"><div class="k">kv→gpu</div><div class="v">${cfg.offload_kv_cache_to_gpu ? 'yes' : 'no'}</div></div>
+      <div class="kv"><div class="k">instance_id</div><div class="v">${esc(instances[0].id || id)}</div></div>
+    </div>`;
+  }
+
+  const card = document.createElement('div');
+  card.className = `model-card ${loaded ? 'is-loaded' : ''} ${loading ? 'is-loading' : ''}`;
+
+  card.innerHTML = `
+    <div>
+      <div class="card-header">
+        <div class="state-dot ${loaded ? 'loaded' : (loading ? 'loading' : '')}"></div>
+        <div>
+          <div class="card-name">${esc(name)}</div>
+          <div class="card-pub">${esc(pub)}</div>
+        </div>
+      </div>
+      <div class="tags">
+        ${t ? `<span class="tag ${typeClass}">${t.toUpperCase()}</span>` : ''}
+        ${fmt ? `<span class="tag">${esc(fmt)}</span>` : ''}
+        ${quant ? `<span class="tag">${esc(quant)}${bits ? ' · ' + bits + 'b' : ''}</span>` : ''}
+        ${params ? `<span class="tag">${esc(params)}</span>` : ''}
+        ${arch ? `<span class="tag">${esc(arch)}</span>` : ''}
+      </div>
+      <div class="specs">
+        ${maxCtx ? `<span>ctx max <span class="v">${maxCtx.toLocaleString()}</span></span>` : ''}
+        ${size ? `<span>size <span class="v">${size}</span></span>` : ''}
+        ${vision !== undefined ? `<span>vision <span class="v">${vision ? '✓' : '✗'}</span></span>` : ''}
+        ${tools !== undefined ? `<span>tools <span class="v">${tools ? '✓' : '✗'}</span></span>` : ''}
+      </div>
+      ${loadedBarHtml}
+    </div>
+    <div class="card-actions">
+      ${loaded
+        ? `<button class="btn btn-sm btn-danger" onclick="unload('${esc(id)}','${esc(instances[0]?.id || id)}')">Unload</button>
+           <button class="btn btn-sm" onclick="openTest('${esc(id)}')">Test ▷</button>`
+        : `<button class="btn btn-sm btn-primary" onclick="openLoadCfg('${esc(id)}',${maxCtx || 131072})">Load ▷</button>`
+      }
+    </div>`;
+
+  return card;
+}
+
+function setFilter(el, f) {
+  S.filter = f;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderModels();
+}
+
+// ── LOAD / UNLOAD ──
+function openLoadCfg(id, maxCtx) {
+  S.configFor = id;
+  const cap = Math.min(maxCtx || 131072, 131072);
+  const def = Math.min(8192, cap);
+  document.getElementById('rightTitle').textContent = 'Load Config';
+  document.getElementById('rightBody').innerHTML = `
+    <div class="load-config">
+      <div class="config-model-id">${esc(id)}</div>
+
+      <div>
+        <div class="config-label">Context Length</div>
+        <div class="range-row">
+          <input type="range" id="cfgCtx" min="512" max="${cap}" value="${def}"
+            oninput="document.getElementById('cfgCtxV').textContent=Number(this.value).toLocaleString()">
+          <span class="range-val" id="cfgCtxV">${def.toLocaleString()}</span>
+        </div>
+        <div class="range-hint"><span>512</span><span>max ${cap.toLocaleString()}</span></div>
+      </div>
+
+      <div>
+        <div class="toggle-row">
+          <span class="config-label">Flash Attention</span>
+          <div class="toggle on" id="cfgFlash" onclick="this.classList.toggle('on')"></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="toggle-row">
+          <span class="config-label">KV Cache → GPU</span>
+          <div class="toggle on" id="cfgKV" onclick="this.classList.toggle('on')"></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="config-label">Eval Batch Size</div>
+        <div class="range-row">
+          <input type="range" id="cfgBatch" min="64" max="2048" value="512" step="64"
+            oninput="document.getElementById('cfgBatchV').textContent=this.value">
+          <span class="range-val" id="cfgBatchV">512</span>
+        </div>
+        <div class="range-hint"><span>64</span><span>2048</span></div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:4px;">
+        <button class="btn btn-primary" style="flex:1;" onclick="doLoad()">Load Model</button>
+        <button class="btn" onclick="clearRight()">Cancel</button>
+      </div>
+    </div>`;
+}
+
+async function doLoad() {
+  const id = S.configFor;
+  if (!id) return;
+  const ctx = parseInt(document.getElementById('cfgCtx').value);
+  const flash = document.getElementById('cfgFlash').classList.contains('on');
+  const kv = document.getElementById('cfgKV').classList.contains('on');
+  const batch = parseInt(document.getElementById('cfgBatch').value);
+
+  S.loadingId = id;
+  renderModels();
+  clearRight();
+  log('INF', `Loading ${id} ctx=${ctx.toLocaleString()}…`);
+
+  try {
+    const res = await apiFetch('/api/v1/models/load', {
+      method: 'POST',
+      body: JSON.stringify({ model: id, context_length: ctx, flash_attention: flash, offload_kv_cache_to_gpu: kv, eval_batch_size: batch })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || data.error || data.message || `HTTP ${res.status}`);
+    log('OK', `Loaded · instance: ${data.instance_id || data.id || 'ok'}`);
+  } catch (e) {
+    log('ERR', `Load failed: ${e.message}`);
+  } finally {
+    S.loadingId = null;
+    await refresh();
+  }
+}
+
+async function unload(modelId, instanceId) {
+  if (!confirm(`Unload "${modelId}"?`)) return;
+  log('WRN', `Unloading ${modelId}…`);
+  try {
+    const res = await apiFetch('/api/v1/models/unload', {
+      method: 'POST',
+      body: JSON.stringify({ instance_id: instanceId })
+    });
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      throw new Error(d.error || d.message || `HTTP ${res.status}`);
+    }
+    log('OK', `Unloaded ${modelId}`);
+    await refresh();
+  } catch (e) {
+    log('ERR', `Unload failed: ${e.message}`);
+  }
+}
+
+// ── TEST ──
+const API_LIST = ['lms', 'openai', 'anthropic'];
+const API_LABELS = { lms: 'LMS /api/v1', openai: 'OpenAI /v1', anthropic: 'Anthropic /v1' };
+
+function cycleApi() {
+  const idx = API_LIST.indexOf(S.api);
+  S.api = API_LIST[(idx + 1) % API_LIST.length];
+  const badge = document.getElementById('apiBadge');
+  badge.className = `api-badge ${S.api}`;
+  badge.textContent = API_LABELS[S.api];
+}
+
+function syncTestSelect(selectId) {
+  const sel = document.getElementById('testModel');
+  const prev = selectId || sel.value;
+  const loaded = S.models.filter(m => isLoaded(m) && mType(m) !== 'embedding');
+  sel.innerHTML = loaded.length
+    ? loaded.map(m => {
+        const id = m.key || m.id || '';
+        return `<option value="${esc(id)}" ${id === prev ? 'selected' : ''}>${esc(m.display_name || id)}</option>`;
+      }).join('')
+    : '<option value="">— no loaded LLM/VLM —</option>';
+}
+
+function openTest(id) {
+  switchTab('test');
+  syncTestSelect(id);
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.nav === 'test'));
+}
+
+async function sendTest() {
+  const modelId = document.getElementById('testModel').value;
+  if (!modelId) { log('WRN', 'No model selected'); return; }
+
+  const system = document.getElementById('sysInput').value.trim();
+  const prompt = document.getElementById('promptInput').value.trim();
+  if (!prompt) return;
+
+  const doStream = document.getElementById('streamChk').checked;
+  const temp = parseFloat(document.getElementById('tempInp').value) || 0.7;
+  const maxTok = parseInt(document.getElementById('maxTokInp').value) || 1024;
+
+  const out = document.getElementById('testOut');
+  out.className = 'test-output streaming';
+  out.innerHTML = '<span class="cursor-blink"></span>';
+  document.getElementById('perfRow').style.display = 'none';
+  document.getElementById('sendBtn').disabled = true;
+
+  const t0 = Date.now();
+  let ttft = null, tokenCount = 0, finishReason = null;
+
+  try {
+    if (S.api === 'lms') {
+      const input = system
+        ? [{ type: 'text', content: system }, { type: 'text', content: prompt }]
+        : prompt;
+      const body = { model: modelId, input, temperature: temp, max_output_tokens: maxTok, stream: doStream };
+      const res = await apiFetch('/api/v1/chat', { method: 'POST', body: JSON.stringify(body) });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error?.message || err.error || err.message || `HTTP ${res.status}`);
+      }
+      if (doStream) {
+        ({ tokenCount, ttft, finishReason } = await readLmsSSE(res, out, t0));
+      } else {
+        const d = await res.json();
+        const msg = (d.output || []).filter(o => o.type === 'message').map(o => o.content).join('');
+        const txt = msg || '';
+        out.textContent = txt.replace(/^\n+/, ''); out.className = 'test-output has-content';
+        tokenCount = d.stats?.total_output_tokens || 0;
+        finishReason = 'stop';
+      }
+
+    } else if (S.api === 'openai') {
+      const msgs = [];
+      if (system) msgs.push({ role: 'system', content: system });
+      msgs.push({ role: 'user', content: prompt });
+      const body = { model: modelId, messages: msgs, temperature: temp, max_tokens: maxTok, stream: doStream };
+      const res = await apiFetch('/v1/chat/completions', { method: 'POST', body: JSON.stringify(body) });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error?.message || err.error || err.message || `HTTP ${res.status}`);
+      }
+      if (doStream) {
+        ({ tokenCount, ttft, finishReason } = await readSSE(res, out, t0));
+      } else {
+        const d = await res.json();
+        const txt = d.choices?.[0]?.message?.content || '';
+        out.textContent = txt; out.className = 'test-output has-content';
+        tokenCount = d.usage?.completion_tokens || 0;
+        finishReason = d.choices?.[0]?.finish_reason;
+      }
+
+    } else if (S.api === 'anthropic') {
+      const body = {
+        model: modelId, max_tokens: maxTok, temperature: temp, stream: doStream,
+        messages: [{ role: 'user', content: prompt }],
+        ...(system ? { system } : {})
+      };
+      const res = await apiFetch('/anthropic/v1/messages', {
+        method: 'POST', body: JSON.stringify(body),
+        extraHeaders: { 'anthropic-version': '2023-06-01' }
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error?.message || err.message || `HTTP ${res.status}`);
+      }
+      if (doStream) {
+        ({ tokenCount, ttft, finishReason } = await readAnthropicSSE(res, out, t0));
+      } else {
+        const d = await res.json();
+        const txt = d.content?.[0]?.text || '';
+        out.textContent = txt; out.className = 'test-output has-content';
+        tokenCount = d.usage?.output_tokens || 0;
+        finishReason = d.stop_reason;
+      }
+    }
+
+    const elapsed = Date.now() - t0;
+    showPerf(ttft, tokenCount, elapsed, finishReason);
+    log('OK', `${S.api.toUpperCase()} · ${modelId} · ${tokenCount} tok · ${(elapsed/1000).toFixed(2)}s`);
+
+  } catch (e) {
+    out.className = 'test-output is-error';
+    out.textContent = `Error: ${e.message}`;
+    log('ERR', `Test: ${e.message}`);
+    if (/fetch|network/i.test(e.message)) showCorsBanner();
+  } finally {
+    document.getElementById('sendBtn').disabled = false;
+  }
+}
+
+async function readSSE(res, out, t0) {
+  const reader = res.body.getReader();
+  const dec = new TextDecoder();
+  let text = '', firstTok = true, tokens = 0, ttft = null, finish = null;
+  let buf = '';
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      const lines = buf.split('\n');
+      buf = lines.pop();
+      for (const line of lines) {
+        if (!line.startsWith('data:')) continue;
+        const raw = line.slice(5).trim();
+        if (raw === '[DONE]') { finish = finish || 'stop'; continue; }
+        try {
+          const j = JSON.parse(raw);
+          const delta = j.choices?.[0]?.delta?.content || '';
+          if (delta) {
+            if (firstTok) { ttft = Date.now() - t0; firstTok = false; }
+            text += delta; tokens++;
+            out.innerHTML = esc(text) + '<span class="cursor-blink"></span>';
+          }
+          if (j.choices?.[0]?.finish_reason) finish = j.choices[0].finish_reason;
+        } catch {}
+      }
+    }
+  } finally { reader.releaseLock(); }
+  out.textContent = text;
+  out.className = 'test-output has-content';
+  return { tokenCount: tokens, ttft, finishReason: finish };
+}
+
+async function readLmsSSE(res, out, t0) {
+  const reader = res.body.getReader();
+  const dec = new TextDecoder();
+  let text = '', firstTok = true, tokens = 0, ttft = null;
+  let buf = '';
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      const lines = buf.split('\n');
+      buf = lines.pop();
+      for (const line of lines) {
+        if (!line.startsWith('data:')) continue;
+        try {
+          const j = JSON.parse(line.slice(5).trim());
+          if (j.type === 'message.delta' && j.content) {
+            if (firstTok) { ttft = Date.now() - t0; firstTok = false; }
+            text += j.content; tokens++;
+            out.innerHTML = esc(text.replace(/^\n+/, '')) + '<span class="cursor-blink"></span>';
+          }
+          if (j.type === 'chat.end') {
+            tokens = j.result?.stats?.total_output_tokens || tokens;
+          }
+        } catch {}
+      }
+    }
+  } finally { reader.releaseLock(); }
+  out.textContent = text.replace(/^\n+/, '');
+  out.className = 'test-output has-content';
+  return { tokenCount: tokens, ttft, finishReason: 'stop' };
+}
+
+async function readAnthropicSSE(res, out, t0) {
+  const reader = res.body.getReader();
+  const dec = new TextDecoder();
+  let text = '', firstTok = true, tokens = 0, ttft = null, finish = null;
+  let buf = '';
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      const lines = buf.split('\n');
+      buf = lines.pop();
+      for (const line of lines) {
+        if (!line.startsWith('data:')) continue;
+        try {
+          const j = JSON.parse(line.slice(5).trim());
+          if (j.type === 'content_block_delta' && j.delta?.text) {
+            if (firstTok) { ttft = Date.now() - t0; firstTok = false; }
+            text += j.delta.text; tokens++;
+            out.innerHTML = esc(text) + '<span class="cursor-blink"></span>';
+          }
+          if (j.type === 'message_delta') { tokens = j.usage?.output_tokens || tokens; finish = j.delta?.stop_reason; }
+        } catch {}
+      }
+    }
+  } finally { reader.releaseLock(); }
+  out.textContent = text;
+  out.className = 'test-output has-content';
+  return { tokenCount: tokens, ttft, finishReason: finish || 'end_turn' };
+}
+
+function showPerf(ttft, tokens, ms, stop) {
+  const tps = tokens && ms ? (tokens / (ms / 1000)).toFixed(1) : '—';
+  document.getElementById('p-ttft').textContent = ttft ? ttft + 'ms' : '—';
+  document.getElementById('p-tps').textContent = tps;
+  document.getElementById('p-tok').textContent = tokens || '—';
+  document.getElementById('p-total').textContent = (ms / 1000).toFixed(2) + 's';
+  document.getElementById('p-stop').textContent = stop || '—';
+  document.getElementById('perfRow').style.display = 'flex';
+}
+
+function clearTest() {
+  const out = document.getElementById('testOut');
+  out.className = 'test-output';
+  out.textContent = 'Response will appear here…';
+  document.getElementById('perfRow').style.display = 'none';
+}
+
+function showCorsBanner() {
+  document.getElementById('corsBanner').style.display = 'block';
+}
+
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    if (document.getElementById('view-test').style.display !== 'none') sendTest();
+  }
+});
+
+// ── NAV / TABS ──
+function switchTab(name) {
+  ['models', 'test', 'endpoints'].forEach(t => {
+    document.getElementById('view-' + t).style.display = t === name ? 'block' : 'none';
+    document.getElementById('tab-' + t).classList.toggle('active', t === name);
+  });
+}
+function showNav(name, el) {
+  switchTab(name);
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  el?.classList.add('active');
+}
+
+function clearRight() {
+  document.getElementById('rightTitle').textContent = 'Config';
+  document.getElementById('rightBody').innerHTML = `
+    <div style="color:var(--text-muted);font-size:13px;text-align:center;padding:30px 10px;line-height:1.8;">
+      Click <strong style="color:var(--text)">Load ▷</strong> on any unloaded model to configure and load it here.
+    </div>`;
+}
+
+// ── INIT ──
+(function () {
+  const saved = localStorage.getItem('lmsctrl_theme') || 'dark';
+  S.theme = saved;
+  document.querySelectorAll('.theme-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === saved));
+  applyTheme();
+
+  const h = sessionStorage.getItem('lmsctrl_host');
+  const t = sessionStorage.getItem('lmsctrl_token');
+  if (h) document.getElementById('hostInput').value = h;
+  if (t) document.getElementById('tokenInput').value = t;
+
+  if (location.protocol === 'file:') {
+    document.getElementById('corsBanner').style.display = 'block';
+  }
+})();
+</script>
+</body>
+</html>
